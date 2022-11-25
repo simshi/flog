@@ -1,10 +1,11 @@
 # FLog: Naive **F**ixed **Log** in Golang
   - A strongly-opinionated key-value stylish log library, zero-configuration(un-configurable)
-  - 带有强烈个人观点的简单日志库, KV风格，零配置（不可配置）
+  - 这是一个带有强烈个人观点的简单日志库, KV风格，零配置（不可配置）
   ![Screenshot](./doc/screenshot.png "screenshot")
 
 # Usage 用法
 
+  - `import "flog/log"`，not `import "flog"`
   ```go
   import "flog/log"
 
@@ -27,17 +28,17 @@
   - copy to codebase, e.g. under `pkg/flog` & modify by yourself :smirk:
   - 自己动手，丰衣足食，把flog模块放到自己的工程里去，比如`pkg/flog`，然后修改就完了
 
-# Opinions
+# Philosophy 哲学
   - [12factor on logs](https://12factor.net/logs)
     > should not attempt to write to or manage logfiles. Instead, each running process writes its event stream, unbuffered, to **stdout**
   - [12factor关于日志部分](https://12factor.net/zh_cn/logs)
     > 不应该试图去写或者管理日志文件。相反，每一个运行的进程不用缓冲，直接写事件流到标准输出（**stdout**）
   - In most scenarios, app is running as a systemctl service or docker container, which has alread take care of our logs, managing logs by app itself is redundant.
   - 在绝大多数场景下，app作为一个systemctl的服务或者docker容器运行，外部环境/服务已经管理好我们的日志了（通过重定向标准输出），自己管理日志通常是多此一举
-  - If you really want to write log files and rotate, better to do it by other tools through pipe, which meets [The UNIX Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) e.g.:
+  - If you really want to write log files and rotate, better to do it by other tools through pipe, which meets [The UNIX Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) e.g.
   - 如果你需要将日志写到文件中并滚动起来，更好的办法是写一个专门的应用，并通过管道去使用，这也符合UNIX哲学，比如：
     ```bash
-	$ my_app | tee logToFiles -d /var/logs/my_app --rotate-size 1m --file-keep 5
+	$ my_app | tee logToFiles -d /var/logs/my_app/ --rotate-size 1m --files-keep 5
 	$ other_app | tee sendToKafka -c config.yml
 	```
 

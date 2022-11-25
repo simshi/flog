@@ -1,8 +1,9 @@
 package log
 
 import (
-	"flog"
 	"io"
+
+	"github.com/simshi/flog"
 )
 
 // global _log
