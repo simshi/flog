@@ -5,8 +5,8 @@ import "strconv"
 type Level int8
 
 const (
-	LEVEL_DISABLED = -1
-	LEVEL_FATAL    = iota - 1
+	LEVEL_DISABLED = iota - 1
+	LEVEL_FATAL
 	LEVEL_ERROR
 	LEVEL_WARN
 	LEVEL_INFO

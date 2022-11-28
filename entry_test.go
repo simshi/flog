@@ -19,6 +19,7 @@ const fakeMessage = "Test logging, but use a somewhat realistic message length."
 
 func setup() {
 	SetOutput(io.Discard)
+	SetLevel(LEVEL_DEBUG)
 }
 
 func TestEntryInit(t *testing.T) {
@@ -121,11 +122,14 @@ func BenchmarkInt(b *testing.B) {
 	}
 }
 func BenchmarkTimeAndLevel_fmt(b *testing.B) {
+	setup()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = fmt.Sprintf("%s \033[2;37m%s\033[0m",
+		_, file, line, _ := runtime.Caller(1)
+		_ = fmt.Sprintf("%s \033[2;37m%s\033[0m %s:%d",
 			time.Now().Format(TIME_LAYOUT),
 			"DBG",
+			file, line,
 		)
 	}
 }
@@ -142,15 +146,31 @@ func BenchmarkTimeAndLevelWithPool(b *testing.B) {
 	setup()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		e := ep.Get().(*Entry)
+		e := gEntryPool.Get().(*Entry)
 		e.Init(LEVEL_DEBUG, 0).Msg("")
+	}
+}
+func BenchmarkLogFields_fmt(b *testing.B) {
+	setup()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, file, line, _ := runtime.Caller(1)
+		_ = fmt.Sprintf("%s \033[2;37m%s\033[0m %s:%d %s=%s %s=%d %s=%f %s",
+			time.Now().Format(TIME_LAYOUT),
+			"DBG",
+			file, line,
+			"string", "four!",
+			"int", 123,
+			"float", -3.141592653589793,
+			fakeMessage,
+		)
 	}
 }
 func BenchmarkLogFields(b *testing.B) {
 	setup()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		e := ep.Get().(*Entry)
+		e := gEntryPool.Get().(*Entry)
 		e.Init(LEVEL_INFO, 0).
 			Str("string", "four!").
 			Int("int", 123).

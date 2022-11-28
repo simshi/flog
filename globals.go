@@ -3,14 +3,28 @@ package flog
 import (
 	"io"
 	"os"
+	"sync"
 )
 
-var globalWriter io.Writer = os.Stdout
+var (
+	gWriter io.Writer = os.Stdout
+	gLevel  Level     = LEVEL_INFO
+)
+
+var gEntryPool = sync.Pool{
+	New: func() interface{} {
+		return new(Entry)
+	},
+}
 
 func SetOutput(w io.Writer) {
 	if w != nil {
-		globalWriter = w
+		gWriter = w
 	} else {
-		globalWriter = io.Discard
+		gWriter = io.Discard
 	}
+}
+
+func SetLevel(lvl Level) {
+	gLevel = lvl
 }

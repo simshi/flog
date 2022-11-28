@@ -2,9 +2,12 @@ package log
 
 import (
 	"errors"
+
+	"github.com/simshi/flog"
 )
 
 func ExampleDebug() {
+	flog.SetLevel(flog.LEVEL_DEBUG)
 	Debug().Int("key", -42).IntPad0("code", 0, 8).UintPad0("value", 321, 4).Msg("Hello World!")
 	Info().Str("host", "example.com").Uint("port", 9527).Msg("Hello World!")
 	Warn().Hex("raw", 0x42ab).Hex("neg", -2).Msgf("Greeting %s!", "World")

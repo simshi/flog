@@ -34,18 +34,26 @@ func (e *Entry) Init(l Level, skip int) *Entry {
 
 // finishing move
 func (e *Entry) Msg(m string) {
+	if e == nil {
+		return
+	}
+
 	e.writeSep()
 	e.pos += copy(e.a[e.pos:], m)
 	e.writeByte(byte('\n'))
-	globalWriter.Write(e.a[:e.pos])
-	ep.Put(e)
+	gWriter.Write(e.a[:e.pos])
+	gEntryPool.Put(e)
 }
 func (e *Entry) Msgf(format string, v ...any) {
+	if e == nil {
+		return
+	}
+
 	e.writeSep()
 	e.pos += copy(e.a[e.pos:], fmt.Sprintf(format, v...))
 	e.writeByte(byte('\n'))
-	globalWriter.Write(e.a[:e.pos])
-	ep.Put(e)
+	gWriter.Write(e.a[:e.pos])
+	gEntryPool.Put(e)
 }
 
 // for Fatal log exit
@@ -67,6 +75,10 @@ func (e *Entry) Int(k string, v int) *Entry {
 	return e.Int64(k, int64(v))
 }
 func (e *Entry) Int64(k string, v int64) *Entry {
+	if e == nil {
+		return e
+	}
+
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -87,6 +99,10 @@ func (e *Entry) Uint(k string, v uint) *Entry {
 	return e.Uint64(k, uint64(v))
 }
 func (e *Entry) Uint64(k string, v uint64) *Entry {
+	if e == nil {
+		return e
+	}
+
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -107,6 +123,10 @@ func (e *Entry) IntPad0(k string, v int, pad int) *Entry {
 	return e.Int64Pad0(k, int64(v), pad)
 }
 func (e *Entry) Int64Pad0(k string, v int64, pad int) *Entry {
+	if e == nil {
+		return e
+	}
+
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -118,6 +138,10 @@ func (e *Entry) UintPad0(k string, v uint, pad int) *Entry {
 	return e.Uint64Pad(k, uint64(v), pad)
 }
 func (e *Entry) Uint64Pad(k string, v uint64, pad int) *Entry {
+	if e == nil {
+		return e
+	}
+
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -126,6 +150,10 @@ func (e *Entry) Uint64Pad(k string, v uint64, pad int) *Entry {
 }
 
 func (e *Entry) Hex(k string, v int) *Entry {
+	if e == nil {
+		return e
+	}
+
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -135,6 +163,10 @@ func (e *Entry) Hex(k string, v int) *Entry {
 }
 
 func (e *Entry) Bool(k string, v bool) *Entry {
+	if e == nil {
+		return e
+	}
+
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -147,9 +179,17 @@ func (e *Entry) Bool(k string, v bool) *Entry {
 }
 
 func (e *Entry) Float32(k string, v float32) *Entry {
+	if e == nil {
+		return e
+	}
+
 	return e.appendFloat64(k, float64(v), 32)
 }
 func (e *Entry) Float64(k string, v float64) *Entry {
+	if e == nil {
+		return e
+	}
+
 	return e.appendFloat64(k, v, 64)
 }
 func (e *Entry) appendFloat64(k string, v float64, bits int) *Entry {
@@ -161,6 +201,10 @@ func (e *Entry) appendFloat64(k string, v float64, bits int) *Entry {
 }
 
 func (e *Entry) Str(k, s string) *Entry {
+	if e == nil {
+		return e
+	}
+
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -169,6 +213,10 @@ func (e *Entry) Str(k, s string) *Entry {
 }
 
 func (e *Entry) Err(err error) *Entry {
+	if e == nil {
+		return e
+	}
+
 	return e.Str("err", err.Error())
 }
 
