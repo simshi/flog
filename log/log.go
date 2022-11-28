@@ -28,3 +28,12 @@ func Fatal() *flog.Entry {
 func SetOutput(w io.Writer) {
 	flog.SetOutput(w)
 }
+
+func SetLevel(lvl string) error {
+	if level, err := flog.ParseLevel(lvl); err != nil {
+		return err
+	} else {
+		flog.SetLevel(level)
+	}
+	return nil
+}

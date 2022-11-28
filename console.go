@@ -17,7 +17,7 @@ const (
 	colorFatal = "\033[5;41;39m"
 	colorError = "\033[1;31m"
 	colorWarn  = "\033[1;33m"
-	colorInfo  = "\033[1;32m"
+	colorInfo  = "\033[1;36m"
 	colorDebug = "\033[2;37m"
 )
 

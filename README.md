@@ -1,5 +1,5 @@
 # FLog: Naive **F**ixed **Log** in Golang
-  - A strongly-opinionated key-value stylish log library, zero-configuration(un-configurable)
+  - A strongly-opinionated key-value stylish log library, zero-configuration (un-configurable)
   - 这是一个带有强烈个人观点的简单日志库, KV风格，零配置（不可配置）
   ![Screenshot](./doc/screenshot.png "screenshot")
 
