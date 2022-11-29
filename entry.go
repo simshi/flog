@@ -257,8 +257,8 @@ func (e *Entry) writeStr(s string) {
 	e.pos += copy(e.a[e.pos:], s)
 }
 
-// 可惜go不支持`DIGITS[-3]`，比不了C/C++简洁高效(不需neg判断)
-var DIGITS = []byte("0123456789ABCDEF876543210")
+// int to string conversion
+var DIGITS = []byte("0123456789ABCDEF")
 
 func (e *Entry) writeInt64(v int64) {
 	if v < 0 {
@@ -270,32 +270,13 @@ func (e *Entry) writeInt64(v int64) {
 	}
 }
 func (e *Entry) writeInt64Pad0(v int64, pad int) {
-	s := e.pos
-	neg := false
 	if v < 0 {
-		neg = true
-		v = -v
-		pad -= 1
-	}
-	for {
-		e.a[e.pos] = DIGITS[v%10]
-		e.pos += 1
-		v /= 10
-		if v == 0 {
-			break
-		}
-	}
-
-	for pad -= (e.pos - s); pad > 0; pad -= 1 {
-		e.a[e.pos] = byte('0')
-		e.pos += 1
-	}
-
-	if neg {
 		e.a[e.pos] = byte('-')
 		e.pos += 1
+		e.writeUint64Pad0(uint64(-v), pad-1)
+	} else {
+		e.writeUint64Pad0(uint64(v), pad)
 	}
-	reverseBytes(e.a[s:e.pos])
 }
 
 // Efficient Integer to String Conversions, by Matthew Wilson.
