@@ -220,13 +220,25 @@ func (e *Entry) Err(err error) *Entry {
 	return e.Str("err", err.Error())
 }
 
+func (e *Entry) Any(k string, v any) *Entry {
+	if e == nil {
+		return e
+	}
+
+	e.writeSep()
+	e.writeStr(k)
+	e.writeDelimar()
+	e.writeStr(fmt.Sprintf("%v", v))
+	return e
+}
+
 // private helper functions
 func (e *Entry) writeByte(b byte) {
 	e.a[e.pos] = b
 	e.pos += 1
 }
 func (e *Entry) writeTime(t time.Time) {
-	if t.UnixMilli()/(60*1000) == e.cachedTime.UnixMilli()/(60*1000) {
+	if t.Unix()/60 == e.cachedTime.Unix()/60 {
 		e.pos = 17
 		e.writeUint64Pad0(uint64(t.Second()), 2)
 		e.pos += 1
