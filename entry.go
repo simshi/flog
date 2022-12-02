@@ -71,10 +71,16 @@ func (e *ExitEntry) Msgf(format string, v ...any) {
 }
 
 // chainable methods
-func (e *Entry) Int(k string, v int) *Entry {
-	return e.Int64(k, int64(v))
+type IntSet interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
-func (e *Entry) Int64(k string, v int64) *Entry {
+type UintSet interface {
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
+// Go has not support type-parameterized methods yet
+// TODO: change this to a method `Entry.Int[T IntSet](k, v)` after Go became smart
+func anyInt[T IntSet](e *Entry, k string, v T) *Entry {
 	if e == nil {
 		return e
 	}
@@ -82,71 +88,106 @@ func (e *Entry) Int64(k string, v int64) *Entry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
-	e.writeInt64(v)
+	writeAnyInt(e, v)
 	return e
 }
+func anyUint[T UintSet](e *Entry, k string, v T) *Entry {
+	if e == nil {
+		return e
+	}
+
+	e.writeSep()
+	e.writeStr(k)
+	e.writeDelimar()
+	writeAnyUint(e, v)
+	return e
+}
+
+func anyIntPad0[T IntSet](e *Entry, k string, v T, pad int) *Entry {
+	if e == nil {
+		return e
+	}
+
+	e.writeSep()
+	e.writeStr(k)
+	e.writeDelimar()
+	writeAnyIntPad0(e, v, pad)
+	return e
+}
+func anyUintPad0[T UintSet](e *Entry, k string, v T, pad int) *Entry {
+	if e == nil {
+		return e
+	}
+
+	e.writeSep()
+	e.writeStr(k)
+	e.writeDelimar()
+	writeAnyUintPad0(e, v, pad)
+	return e
+}
+
+func (e *Entry) Int(k string, v int) *Entry {
+	return anyInt(e, k, v)
+}
 func (e *Entry) Int8(k string, v int8) *Entry {
-	return e.Int64(k, int64(v))
+	return anyInt(e, k, v)
 }
 func (e *Entry) Int16(k string, v int16) *Entry {
-	return e.Int64(k, int64(v))
+	return anyInt(e, k, v)
 }
 func (e *Entry) Int32(k string, v int32) *Entry {
-	return e.Int64(k, int64(v))
+	return anyInt(e, k, v)
+}
+func (e *Entry) Int64(k string, v int64) *Entry {
+	return anyInt(e, k, v)
 }
 
 func (e *Entry) Uint(k string, v uint) *Entry {
-	return e.Uint64(k, uint64(v))
-}
-func (e *Entry) Uint64(k string, v uint64) *Entry {
-	if e == nil {
-		return e
-	}
-
-	e.writeSep()
-	e.writeStr(k)
-	e.writeDelimar()
-	e.writeUint64(v)
-	return e
+	return anyUint(e, k, v)
 }
 func (e *Entry) Uint8(k string, v uint8) *Entry {
-	return e.Uint64(k, uint64(v))
+	return anyUint(e, k, v)
 }
 func (e *Entry) Uint16(k string, v uint16) *Entry {
-	return e.Uint64(k, uint64(v))
+	return anyUint(e, k, v)
 }
 func (e *Entry) Uint32(k string, v uint32) *Entry {
-	return e.Uint64(k, uint64(v))
+	return anyUint(e, k, v)
+}
+func (e *Entry) Uint64(k string, v uint64) *Entry {
+	return anyUint(e, k, v)
 }
 
 func (e *Entry) IntPad0(k string, v int, pad int) *Entry {
-	return e.Int64Pad0(k, int64(v), pad)
+	return anyIntPad0(e, k, v, pad)
+}
+func (e *Entry) Int8Pad0(k string, v int8, pad int) *Entry {
+	return anyIntPad0(e, k, v, pad)
+}
+func (e *Entry) Int16Pad0(k string, v int16, pad int) *Entry {
+	return anyIntPad0(e, k, v, pad)
+}
+func (e *Entry) Int32Pad0(k string, v int32, pad int) *Entry {
+	return anyIntPad0(e, k, v, pad)
 }
 func (e *Entry) Int64Pad0(k string, v int64, pad int) *Entry {
-	if e == nil {
-		return e
-	}
-
-	e.writeSep()
-	e.writeStr(k)
-	e.writeDelimar()
-	e.writeInt64Pad0(v, pad)
-	return e
+	return anyIntPad0(e, k, v, pad)
 }
 
 func (e *Entry) UintPad0(k string, v uint, pad int) *Entry {
-	return e.Uint64Pad(k, uint64(v), pad)
+	return anyUintPad0(e, k, v, pad)
 }
-func (e *Entry) Uint64Pad(k string, v uint64, pad int) *Entry {
-	if e == nil {
-		return e
-	}
-
-	e.writeSep()
-	e.writeStr(k)
-	e.writeDelimar()
-	e.writeUint64Pad0(v, pad)
-	return e
+func (e *Entry) Uint8Pad0(k string, v uint8, pad int) *Entry {
+	return anyUintPad0(e, k, v, pad)
+}
+func (e *Entry) Uint16Pad0(k string, v uint16, pad int) *Entry {
+	return anyUintPad0(e, k, v, pad)
+}
+func (e *Entry) Uint32Pad0(k string, v uint32, pad int) *Entry {
+	return anyUintPad0(e, k, v, pad)
+}
+func (e *Entry) Uint64Pad0(k string, v uint64, pad int) *Entry {
+	return anyUintPad0(e, k, v, pad)
 }
 
 func (e *Entry) Hex(k string, v int) *Entry {
@@ -240,9 +281,9 @@ func (e *Entry) writeByte(b byte) {
 func (e *Entry) writeTime(t time.Time) {
 	if t.Unix()/60 == e.cachedTime.Unix()/60 {
 		e.pos = 17
-		e.writeUint64Pad0(uint64(t.Second()), 2)
+		writeAnyUintPad0(e, uint(t.Second()), 2)
 		e.pos += 1
-		e.writeUint64Pad0(uint64(t.Nanosecond()/1000000), 3)
+		writeAnyUintPad0(e, uint(t.Nanosecond()/1000000), 3)
 		if e.a[e.pos] != byte('Z') {
 			e.pos += 6 // +08:00
 		} else {
@@ -271,28 +312,10 @@ func (e *Entry) writeStr(s string) {
 
 // int to string conversion
 var DIGITS = []byte("0123456789ABCDEF")
-
-func (e *Entry) writeInt64(v int64) {
-	if v < 0 {
-		e.a[e.pos] = byte('-')
-		e.pos += 1
-		e.writeUint64(uint64(-v))
-	} else {
-		e.writeUint64(uint64(v))
-	}
-}
-func (e *Entry) writeInt64Pad0(v int64, pad int) {
-	if v < 0 {
-		e.a[e.pos] = byte('-')
-		e.pos += 1
-		e.writeUint64Pad0(uint64(-v), pad-1)
-	} else {
-		e.writeUint64Pad0(uint64(v), pad)
-	}
-}
+var DIGITS_INT = []byte(".FEDCBA9876543210123456789ABCDEF")
 
 // Efficient Integer to String Conversions, by Matthew Wilson.
-func (e *Entry) writeUint64(v uint64) {
+func writeAnyUint[T UintSet](e *Entry, v T) {
 	s := e.pos
 	for {
 		e.a[e.pos] = DIGITS[v%10]
@@ -305,7 +328,25 @@ func (e *Entry) writeUint64(v uint64) {
 
 	reverseBytes(e.a[s:e.pos])
 }
-func (e *Entry) writeUint64Pad0(v uint64, pad int) {
+func writeAnyInt[T IntSet](e *Entry, v T) {
+	if v < 0 {
+		e.a[e.pos] = byte('-')
+		e.pos += 1
+	}
+	s := e.pos
+	for {
+		e.a[e.pos] = DIGITS_INT[16+v%10]
+		e.pos += 1
+		v /= 10
+		if v == 0 {
+			break
+		}
+	}
+
+	reverseBytes(e.a[s:e.pos])
+}
+
+func writeAnyUintPad0[T UintSet](e *Entry, v T, pad int) {
 	s := e.pos
 	for {
 		e.a[e.pos] = DIGITS[v%10]
@@ -323,6 +364,31 @@ func (e *Entry) writeUint64Pad0(v uint64, pad int) {
 
 	reverseBytes(e.a[s:e.pos])
 }
+func writeAnyIntPad0[T IntSet](e *Entry, v T, pad int) {
+	if v < 0 {
+		e.a[e.pos] = byte('-')
+		e.pos += 1
+		pad -= 1
+	}
+
+	s := e.pos
+	for {
+		e.a[e.pos] = DIGITS_INT[16+v%10]
+		e.pos += 1
+		v /= 10
+		if v == 0 {
+			break
+		}
+	}
+
+	for pad -= (e.pos - s); pad > 0; pad -= 1 {
+		e.a[e.pos] = byte('0')
+		e.pos += 1
+	}
+
+	reverseBytes(e.a[s:e.pos])
+}
+
 func (e *Entry) writeHex64(v uint64) {
 	s := e.pos
 	for {
@@ -351,9 +417,6 @@ func (e *Entry) writeFloat64(v float64, bits int) {
 
 func (e *Entry) writeCaller(skip int) {
 	_, file, line, _ := runtime.Caller(skip + 1)
-	// use regex `([^/]+/)?[^/]+$` is clear but 100x slower
-	// b := reFile.Find([]byte(file))
-	// e.pos += copy(e.a[e.pos:], b)
 	if index := strings.LastIndex(file, "/"); index != -1 {
 		if begin := strings.LastIndex(file[:index], "/"); begin != -1 {
 			e.pos += copy(e.a[e.pos:], file[begin+1:])
@@ -364,5 +427,5 @@ func (e *Entry) writeCaller(skip int) {
 		e.pos += copy(e.a[e.pos:], file)
 	}
 	e.writeByte(byte(':'))
-	e.writeUint64(uint64(line))
+	writeAnyInt(e, line)
 }

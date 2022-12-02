@@ -15,7 +15,7 @@
   ```
 
   - must call finishing methods (i.e. `Msg/Msgf`) to actually print the log
-  - supported types (hope one day Go type inference works, revise them as several generic functions):
+  - supported types (hope one day Go type-parameterized method works, revise them as several generic functions):
     - Bool, Str
     - Int, Int8, Int16, Int32, Int64
     - Uint, Uint8, Uint16, Uint32, Uint64

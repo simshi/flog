@@ -179,6 +179,78 @@ func BenchmarkLogFields(b *testing.B) {
 	}
 }
 
+func (e *Entry) writeUint64(v uint64) {
+	s := e.pos
+	for {
+		e.a[e.pos] = DIGITS[v%10]
+		e.pos += 1
+		v /= 10
+		if v == 0 {
+			break
+		}
+	}
+
+	reverseBytes(e.a[s:e.pos])
+}
+func (e *Entry) writeInt64(v int64) {
+	if v < 0 {
+		e.a[e.pos] = byte('-')
+		e.pos += 1
+		e.writeUint64(uint64(-v))
+	} else {
+		e.writeUint64(uint64(v))
+	}
+}
+func xInt64(e *Entry, k string, v int64) *Entry {
+	if e == nil {
+		return e
+	}
+
+	e.writeSep()
+	e.writeStr(k)
+	e.writeDelimar()
+	e.writeInt64(v)
+	return e
+}
+func xInt(e *Entry, k string, v int) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func xInt8(e *Entry, k string, v int8) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func xInt16(e *Entry, k string, v int16) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func xInt32(e *Entry, k string, v int32) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func BenchmarkSpecificInt(b *testing.B) {
+	setup()
+	b.ReportAllocs()
+	e := NewEntry()
+	for i := 0; i < b.N; i++ {
+		e.pos = 0
+		xInt(e, "int", 42)
+		xInt8(e, "i8", 8)
+		xInt16(e, "i16", 16)
+		xInt32(e, "i32", 32)
+		xInt64(e, "i64", 64)
+	}
+}
+func BenchmarkAnyInt(b *testing.B) {
+	setup()
+	b.ReportAllocs()
+	e := NewEntry()
+	for i := 0; i < b.N; i++ {
+		e.pos = 0
+		anyInt(e, "int", 42)
+		anyInt(e, "i8", int8(8))
+		anyInt(e, "i16", int16(16))
+		anyInt(e, "i32", int32(32))
+		anyInt(e, "i64", int64(64))
+	}
+}
+
 var files = []string{
 	"entry.go",
 	"flog/entry.go",
