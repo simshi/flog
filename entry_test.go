@@ -126,11 +126,43 @@ func BenchmarkTimeAndLevel_fmt(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_, file, line, _ := runtime.Caller(1)
-		_ = fmt.Sprintf("%s \033[2;37m%s\033[0m %s:%d",
+		_ = fmt.Sprintf("%s %s %s:%d",
 			time.Now().Format(TIME_LAYOUT),
-			"DBG",
+			"\033[2;37mDBGs\033[0m",
 			file, line,
 		)
+	}
+}
+func BenchmarkTimeAndLevel_onebyone(b *testing.B) {
+	setup()
+	b.ReportAllocs()
+	e := &Entry{}
+	for i := 0; i < b.N; i++ {
+		_, file, line, _ := runtime.Caller(1)
+		t := time.Now()
+		e.pos = 0
+		writeAnyInt(e, t.Year())
+		e.writeByte(byte('-'))
+		writeAnyIntPad0(e, t.Month(), 2)
+		e.writeByte(byte('-'))
+		writeAnyIntPad0(e, t.Day(), 2)
+		e.writeByte(byte('T'))
+		writeAnyIntPad0(e, t.Hour(), 2)
+		e.writeByte(byte(':'))
+		writeAnyIntPad0(e, t.Minute(), 2)
+		e.writeByte(byte(':'))
+		writeAnyIntPad0(e, t.Second(), 2)
+		e.writeByte(byte('.'))
+		writeAnyIntPad0(e, t.Nanosecond()/1000000, 3)
+		b := t.AppendFormat(e.a[e.pos:e.pos], "Z07:00")
+		e.pos += len(b)
+
+		e.writeSep()
+		e.writeStr("\033[2;37mDBGs\033[0m")
+		e.writeSep()
+		e.writeStr(file)
+		e.writeByte(byte(':'))
+		writeAnyInt(e, line)
 	}
 }
 func BenchmarkTimeAndLevel(b *testing.B) {

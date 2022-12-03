@@ -46,9 +46,35 @@ func (e *NopEntry) Float64(k string, v float64) IEntry {
 func (e *NopEntry) IntPad0(k string, v int, pad int) IEntry {
 	return e
 }
+func (e *NopEntry) Int8Pad0(k string, v int8, pad int) IEntry {
+	return e
+}
+func (e *NopEntry) Int16Pad0(k string, v int16, pad int) IEntry {
+	return e
+}
+func (e *NopEntry) Int32Pad0(k string, v int32, pad int) IEntry {
+	return e
+}
+func (e *NopEntry) Int64Pad0(k string, v int64, pad int) IEntry {
+	return e
+}
+
 func (e *NopEntry) UintPad0(k string, v uint, pad int) IEntry {
 	return e
 }
+func (e *NopEntry) Uint8Pad0(k string, v uint8, pad int) IEntry {
+	return e
+}
+func (e *NopEntry) Uint16Pad0(k string, v uint16, pad int) IEntry {
+	return e
+}
+func (e *NopEntry) Uint32Pad0(k string, v uint32, pad int) IEntry {
+	return e
+}
+func (e *NopEntry) Uint64Pad0(k string, v uint64, pad int) IEntry {
+	return e
+}
+
 func (e *NopEntry) Hex(k string, v int) IEntry {
 	return e
 }

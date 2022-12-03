@@ -212,10 +212,8 @@ func (e *Entry) writeByte(b byte) {
 	e.pos += 1
 }
 func (e *Entry) writeTime(t time.Time) {
-	if t.Unix()/60 == e.cachedTime.Unix()/60 {
-		e.pos = 17
-		writeAnyUintPad0(e, uint(t.Second()), 2)
-		e.pos += 1
+	if t.Unix() == e.cachedTime.Unix() {
+		e.pos += 20
 		writeAnyUintPad0(e, uint(t.Nanosecond()/1000000), 3)
 		if e.a[e.pos] != byte('Z') {
 			e.pos += 6 // +08:00
@@ -224,7 +222,22 @@ func (e *Entry) writeTime(t time.Time) {
 		}
 	} else {
 		// e.pos += copy(e.a[:], t.Format(TIME_LAYOUT))
-		b := t.AppendFormat(e.a[e.pos:e.pos], TIME_LAYOUT)
+		// b := t.AppendFormat(e.a[e.pos:e.pos], TIME_LAYOUT)
+		// e.pos += len(b)
+		writeAnyInt(e, t.Year())
+		e.writeByte(byte('-'))
+		writeAnyIntPad0(e, t.Month(), 2)
+		e.writeByte(byte('-'))
+		writeAnyIntPad0(e, t.Day(), 2)
+		e.writeByte(byte('T'))
+		writeAnyIntPad0(e, t.Hour(), 2)
+		e.writeByte(byte(':'))
+		writeAnyIntPad0(e, t.Minute(), 2)
+		e.writeByte(byte(':'))
+		writeAnyIntPad0(e, t.Second(), 2)
+		e.writeByte(byte('.'))
+		writeAnyIntPad0(e, t.Nanosecond()/1000000, 3)
+		b := t.AppendFormat(e.a[e.pos:e.pos], "Z07:00")
 		e.pos += len(b)
 
 		e.cachedTime = t

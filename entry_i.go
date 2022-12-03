@@ -24,7 +24,16 @@ type IEntry interface {
 	Uint64(k string, v uint64) IEntry
 
 	IntPad0(k string, v int, pad int) IEntry
+	Int8Pad0(k string, v int8, pad int) IEntry
+	Int16Pad0(k string, v int16, pad int) IEntry
+	Int32Pad0(k string, v int32, pad int) IEntry
+	Int64Pad0(k string, v int64, pad int) IEntry
+
 	UintPad0(k string, v uint, pad int) IEntry
+	Uint8Pad0(k string, v uint8, pad int) IEntry
+	Uint16Pad0(k string, v uint16, pad int) IEntry
+	Uint32Pad0(k string, v uint32, pad int) IEntry
+	Uint64Pad0(k string, v uint64, pad int) IEntry
 
 	Float32(k string, v float32) IEntry
 	Float64(k string, v float64) IEntry
