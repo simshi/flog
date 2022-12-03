@@ -17,6 +17,8 @@ var gEntryPool = sync.Pool{
 	},
 }
 
+var gNopEntry = NopEntry{}
+
 func SetOutput(w io.Writer) {
 	if w != nil {
 		gWriter = w

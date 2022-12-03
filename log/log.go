@@ -9,19 +9,19 @@ import (
 // global _log
 var _log = flog.New()
 
-func Debug() *flog.Entry {
+func Debug() flog.IEntry {
 	return _log.Debug(1)
 }
-func Info() *flog.Entry {
+func Info() flog.IEntry {
 	return _log.Info(1)
 }
-func Warn() *flog.Entry {
+func Warn() flog.IEntry {
 	return _log.Warn(1)
 }
-func Error() *flog.Entry {
+func Error() flog.IEntry {
 	return _log.Error(1)
 }
-func Fatal() *flog.Entry {
+func Fatal() flog.IEntry {
 	return _log.Fatal(1)
 }
 

@@ -52,10 +52,10 @@ func TestEntryInt(t *testing.T) {
 	e := NewEntry()
 	e.Init(LEVEL_DEBUG, 0)
 
-	e = e.Int("key1", 32)
+	e = e.Int("key1", 32).(*Entry)
 	checkStrContains(t, e, " key1=32")
 
-	e = e.Int("key2", -233)
+	e = e.Int("key2", -233).(*Entry)
 	checkStrContains(t, e, " key2=-233")
 
 	e.Msg("int")
@@ -67,16 +67,16 @@ func TestEntryIntPad0(t *testing.T) {
 	e := NewEntry()
 	e.Init(LEVEL_DEBUG, 0)
 
-	e = e.IntPad0("k1", 32, 1)
+	e = e.IntPad0("k1", 32, 1).(*Entry)
 	checkStrContains(t, e, " k1=32")
 
-	e = e.IntPad0("k2", 32, 2)
+	e = e.IntPad0("k2", 32, 2).(*Entry)
 	checkStrContains(t, e, " k1=32 k2=32")
 
-	e = e.IntPad0("k3", 32, 3)
+	e = e.IntPad0("k3", 32, 3).(*Entry)
 	checkStrContains(t, e, " k2=32 k3=032")
 
-	e = e.IntPad0("neg", -32, 5)
+	e = e.IntPad0("neg", -32, 5).(*Entry)
 	checkStrContains(t, e, " k3=032 neg=-0032")
 
 	e.Msg("pad0")

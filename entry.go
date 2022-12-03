@@ -2,7 +2,6 @@ package flog
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -22,7 +21,7 @@ func NewEntry() *Entry {
 	return &Entry{}
 }
 
-func (e *Entry) Init(l Level, skip int) *Entry {
+func (e *Entry) Init(l Level, skip int) IEntry {
 	e.pos = 0
 	e.writeTime(time.Now())
 	e.writeSep()
@@ -34,10 +33,6 @@ func (e *Entry) Init(l Level, skip int) *Entry {
 
 // finishing move
 func (e *Entry) Msg(m string) {
-	if e == nil {
-		return
-	}
-
 	e.writeSep()
 	e.pos += copy(e.a[e.pos:], m)
 	e.writeByte(byte('\n'))
@@ -45,29 +40,11 @@ func (e *Entry) Msg(m string) {
 	gEntryPool.Put(e)
 }
 func (e *Entry) Msgf(format string, v ...any) {
-	if e == nil {
-		return
-	}
-
 	e.writeSep()
 	e.pos += copy(e.a[e.pos:], fmt.Sprintf(format, v...))
 	e.writeByte(byte('\n'))
 	gWriter.Write(e.a[:e.pos])
 	gEntryPool.Put(e)
-}
-
-// for Fatal log exit
-type ExitEntry struct {
-	*Entry
-}
-
-func (e *ExitEntry) Msg(m string) {
-	e.Entry.Msg(m)
-	os.Exit(-1)
-}
-func (e *ExitEntry) Msgf(format string, v ...any) {
-	e.Entry.Msgf(format, v...)
-	os.Exit(-1)
 }
 
 // chainable methods
@@ -80,22 +57,14 @@ type UintSet interface {
 
 // Go has not support type-parameterized methods yet
 // TODO: change this to a method `Entry.Int[T IntSet](k, v)` after Go became smart
-func anyInt[T IntSet](e *Entry, k string, v T) *Entry {
-	if e == nil {
-		return e
-	}
-
+func anyInt[T IntSet](e *Entry, k string, v T) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
 	writeAnyInt(e, v)
 	return e
 }
-func anyUint[T UintSet](e *Entry, k string, v T) *Entry {
-	if e == nil {
-		return e
-	}
-
+func anyUint[T UintSet](e *Entry, k string, v T) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -103,22 +72,14 @@ func anyUint[T UintSet](e *Entry, k string, v T) *Entry {
 	return e
 }
 
-func anyIntPad0[T IntSet](e *Entry, k string, v T, pad int) *Entry {
-	if e == nil {
-		return e
-	}
-
+func anyIntPad0[T IntSet](e *Entry, k string, v T, pad int) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
 	writeAnyIntPad0(e, v, pad)
 	return e
 }
-func anyUintPad0[T UintSet](e *Entry, k string, v T, pad int) *Entry {
-	if e == nil {
-		return e
-	}
-
+func anyUintPad0[T UintSet](e *Entry, k string, v T, pad int) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -126,75 +87,71 @@ func anyUintPad0[T UintSet](e *Entry, k string, v T, pad int) *Entry {
 	return e
 }
 
-func (e *Entry) Int(k string, v int) *Entry {
+func (e *Entry) Int(k string, v int) IEntry {
 	return anyInt(e, k, v)
 }
-func (e *Entry) Int8(k string, v int8) *Entry {
+func (e *Entry) Int8(k string, v int8) IEntry {
 	return anyInt(e, k, v)
 }
-func (e *Entry) Int16(k string, v int16) *Entry {
+func (e *Entry) Int16(k string, v int16) IEntry {
 	return anyInt(e, k, v)
 }
-func (e *Entry) Int32(k string, v int32) *Entry {
+func (e *Entry) Int32(k string, v int32) IEntry {
 	return anyInt(e, k, v)
 }
-func (e *Entry) Int64(k string, v int64) *Entry {
+func (e *Entry) Int64(k string, v int64) IEntry {
 	return anyInt(e, k, v)
 }
 
-func (e *Entry) Uint(k string, v uint) *Entry {
+func (e *Entry) Uint(k string, v uint) IEntry {
 	return anyUint(e, k, v)
 }
-func (e *Entry) Uint8(k string, v uint8) *Entry {
+func (e *Entry) Uint8(k string, v uint8) IEntry {
 	return anyUint(e, k, v)
 }
-func (e *Entry) Uint16(k string, v uint16) *Entry {
+func (e *Entry) Uint16(k string, v uint16) IEntry {
 	return anyUint(e, k, v)
 }
-func (e *Entry) Uint32(k string, v uint32) *Entry {
+func (e *Entry) Uint32(k string, v uint32) IEntry {
 	return anyUint(e, k, v)
 }
-func (e *Entry) Uint64(k string, v uint64) *Entry {
+func (e *Entry) Uint64(k string, v uint64) IEntry {
 	return anyUint(e, k, v)
 }
 
-func (e *Entry) IntPad0(k string, v int, pad int) *Entry {
+func (e *Entry) IntPad0(k string, v int, pad int) IEntry {
 	return anyIntPad0(e, k, v, pad)
 }
-func (e *Entry) Int8Pad0(k string, v int8, pad int) *Entry {
+func (e *Entry) Int8Pad0(k string, v int8, pad int) IEntry {
 	return anyIntPad0(e, k, v, pad)
 }
-func (e *Entry) Int16Pad0(k string, v int16, pad int) *Entry {
+func (e *Entry) Int16Pad0(k string, v int16, pad int) IEntry {
 	return anyIntPad0(e, k, v, pad)
 }
-func (e *Entry) Int32Pad0(k string, v int32, pad int) *Entry {
+func (e *Entry) Int32Pad0(k string, v int32, pad int) IEntry {
 	return anyIntPad0(e, k, v, pad)
 }
-func (e *Entry) Int64Pad0(k string, v int64, pad int) *Entry {
+func (e *Entry) Int64Pad0(k string, v int64, pad int) IEntry {
 	return anyIntPad0(e, k, v, pad)
 }
 
-func (e *Entry) UintPad0(k string, v uint, pad int) *Entry {
+func (e *Entry) UintPad0(k string, v uint, pad int) IEntry {
 	return anyUintPad0(e, k, v, pad)
 }
-func (e *Entry) Uint8Pad0(k string, v uint8, pad int) *Entry {
+func (e *Entry) Uint8Pad0(k string, v uint8, pad int) IEntry {
 	return anyUintPad0(e, k, v, pad)
 }
-func (e *Entry) Uint16Pad0(k string, v uint16, pad int) *Entry {
+func (e *Entry) Uint16Pad0(k string, v uint16, pad int) IEntry {
 	return anyUintPad0(e, k, v, pad)
 }
-func (e *Entry) Uint32Pad0(k string, v uint32, pad int) *Entry {
+func (e *Entry) Uint32Pad0(k string, v uint32, pad int) IEntry {
 	return anyUintPad0(e, k, v, pad)
 }
-func (e *Entry) Uint64Pad0(k string, v uint64, pad int) *Entry {
+func (e *Entry) Uint64Pad0(k string, v uint64, pad int) IEntry {
 	return anyUintPad0(e, k, v, pad)
 }
 
-func (e *Entry) Hex(k string, v int) *Entry {
-	if e == nil {
-		return e
-	}
-
+func (e *Entry) Hex(k string, v int) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -203,11 +160,7 @@ func (e *Entry) Hex(k string, v int) *Entry {
 	return e
 }
 
-func (e *Entry) Bool(k string, v bool) *Entry {
-	if e == nil {
-		return e
-	}
-
+func (e *Entry) Bool(k string, v bool) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -219,21 +172,13 @@ func (e *Entry) Bool(k string, v bool) *Entry {
 	return e
 }
 
-func (e *Entry) Float32(k string, v float32) *Entry {
-	if e == nil {
-		return e
-	}
-
+func (e *Entry) Float32(k string, v float32) IEntry {
 	return e.appendFloat64(k, float64(v), 32)
 }
-func (e *Entry) Float64(k string, v float64) *Entry {
-	if e == nil {
-		return e
-	}
-
+func (e *Entry) Float64(k string, v float64) IEntry {
 	return e.appendFloat64(k, v, 64)
 }
-func (e *Entry) appendFloat64(k string, v float64, bits int) *Entry {
+func (e *Entry) appendFloat64(k string, v float64, bits int) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -241,11 +186,7 @@ func (e *Entry) appendFloat64(k string, v float64, bits int) *Entry {
 	return e
 }
 
-func (e *Entry) Str(k, s string) *Entry {
-	if e == nil {
-		return e
-	}
-
+func (e *Entry) Str(k, s string) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
@@ -253,19 +194,11 @@ func (e *Entry) Str(k, s string) *Entry {
 	return e
 }
 
-func (e *Entry) Err(err error) *Entry {
-	if e == nil {
-		return e
-	}
-
+func (e *Entry) Err(err error) IEntry {
 	return e.Str("err", err.Error())
 }
 
-func (e *Entry) Any(k string, v any) *Entry {
-	if e == nil {
-		return e
-	}
-
+func (e *Entry) Any(k string, v any) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
