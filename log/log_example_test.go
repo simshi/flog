@@ -13,10 +13,17 @@ func ExampleDebug() {
 	Warn().Float32("pi", pi).Float64("pi64", pi).Msgf("%d,%.2f Hello %s!", 42, 42.0, "World")
 	Error().Bool("msg sent", true).Err(errors.New("timeout")).Msg("Hello World!")
 
+	// shorthand
+	Debugf("Hello %s!", "World")
+	Infof("Hello %s!", "World")
+	Warnf("Hello %s!", "World")
+	Errorf("Hello %s!", "World")
+	// Fatalf("Hello %s!", "World")
+
 	// Output:
 }
 
 func ExampleFatal() {
 	Fatal().Msg("Critical error, Byebye World!")
-	// Output:
+	// ignore Output:
 }

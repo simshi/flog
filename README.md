@@ -12,6 +12,9 @@
   log.Debug().Int("key", -42).IntPad0("code", 0, 8).UintPad0("value", 321, 4).Msg("Hello World!")
   log.Info().Str("host", "example.com").Uint("port", 9527).Msg("Hello World!")
   log.Warn().Hex("raw", 0x42ab).Hex("neg", -2).Msgf("Greeting %s!", "World")
+
+  // shorthand
+  log.Infof("Hello %s!", "World!") // same as `log.Info().Msgf(...)`
   ```
 
   - must call finishing methods (i.e. `Msg/Msgf`) to actually print the log

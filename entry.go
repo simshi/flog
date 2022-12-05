@@ -195,7 +195,10 @@ func (e *Entry) Str(k, s string) IEntry {
 }
 
 func (e *Entry) Err(err error) IEntry {
-	return e.Str("err", err.Error())
+	e.writeStr(colorRed)
+	e.Str("err", err.Error())
+	e.writeStr(colorReset)
+	return e
 }
 
 func (e *Entry) Any(k string, v any) IEntry {
