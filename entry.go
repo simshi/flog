@@ -260,50 +260,65 @@ func (e *Entry) writeStr(s string) {
 }
 
 // int to string conversion
-var DIGITS = []byte("0123456789ABCDEF")
-var DIGITS_INT = []byte(".FEDCBA9876543210123456789ABCDEF")
+const DIGITS2 = "00010203040506070809" +
+	"10111213141516171819" +
+	"20212223242526272829" +
+	"30313233343536373839" +
+	"40414243444546474849" +
+	"50515253545556575859" +
+	"60616263646566676869" +
+	"70717273747576777879" +
+	"80818283848586878889" +
+	"90919293949596979899"
 
 // Efficient Integer to String Conversions, by Matthew Wilson.
 func writeAnyUint[T UintSet](e *Entry, v T) {
 	s := e.pos
-	for {
-		e.a[e.pos] = DIGITS[v%10]
+	for v >= 100 {
+		i := v % 100 * 2
+		v = v / 100
+		e.a[e.pos+0] = DIGITS2[i+1]
+		e.a[e.pos+1] = DIGITS2[i+0]
+		e.pos += 2
+	}
+	// remaining u < 100
+	i := v * 2
+	e.a[e.pos] = DIGITS2[i+1]
+	e.pos += 1
+	if v >= 10 {
+		e.a[e.pos] = DIGITS2[i+0]
 		e.pos += 1
-		v /= 10
-		if v == 0 {
-			break
-		}
 	}
 
 	reverseBytes(e.a[s:e.pos])
 }
 func writeAnyInt[T IntSet](e *Entry, v T) {
+	u := uint64(v)
 	if v < 0 {
 		e.a[e.pos] = byte('-')
 		e.pos += 1
-	}
-	s := e.pos
-	for {
-		e.a[e.pos] = DIGITS_INT[16+v%10]
-		e.pos += 1
-		v /= 10
-		if v == 0 {
-			break
-		}
+		u = -u // abs value
 	}
 
-	reverseBytes(e.a[s:e.pos])
+	writeAnyUint(e, u)
 }
 
 func writeAnyUintPad0[T UintSet](e *Entry, v T, pad int) {
 	s := e.pos
-	for {
-		e.a[e.pos] = DIGITS[v%10]
+	for v >= 100 {
+		i := v % 100 * 2
+		v = v / 100
+		e.a[e.pos+0] = DIGITS2[i+1]
+		e.a[e.pos+1] = DIGITS2[i+0]
+		e.pos += 2
+	}
+	// remaining u < 100
+	i := v * 2
+	e.a[e.pos] = DIGITS2[i+1]
+	e.pos += 1
+	if v >= 10 {
+		e.a[e.pos] = DIGITS2[i+0]
 		e.pos += 1
-		v /= 10
-		if v == 0 {
-			break
-		}
 	}
 
 	for pad -= (e.pos - s); pad > 0; pad -= 1 {
@@ -314,29 +329,17 @@ func writeAnyUintPad0[T UintSet](e *Entry, v T, pad int) {
 	reverseBytes(e.a[s:e.pos])
 }
 func writeAnyIntPad0[T IntSet](e *Entry, v T, pad int) {
+	u := uint64(v)
 	if v < 0 {
 		e.a[e.pos] = byte('-')
 		e.pos += 1
 		pad -= 1
+		u = -u // abs value
 	}
-
-	s := e.pos
-	for {
-		e.a[e.pos] = DIGITS_INT[16+v%10]
-		e.pos += 1
-		v /= 10
-		if v == 0 {
-			break
-		}
-	}
-
-	for pad -= (e.pos - s); pad > 0; pad -= 1 {
-		e.a[e.pos] = byte('0')
-		e.pos += 1
-	}
-
-	reverseBytes(e.a[s:e.pos])
+	writeAnyUintPad0(e, u, pad)
 }
+
+const DIGITS = "0123456789ABCDEF"
 
 func (e *Entry) writeHex64(v uint64) {
 	s := e.pos
@@ -353,9 +356,8 @@ func (e *Entry) writeHex64(v uint64) {
 }
 func reverseBytes(b []byte) {
 	j := len(b) - 1
-	for i := 0; i < j; i += 1 {
+	for i := 0; i < j; i, j = i+1, j-1 {
 		b[i], b[j] = b[j], b[i]
-		j -= 1
 	}
 }
 
@@ -376,5 +378,5 @@ func (e *Entry) writeCaller(skip int) {
 		e.pos += copy(e.a[e.pos:], file)
 	}
 	e.writeByte(byte(':'))
-	writeAnyInt(e, line)
+	writeAnyUint(e, uint(line))
 }

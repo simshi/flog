@@ -20,7 +20,7 @@
   - must call finishing methods (i.e. `Msg/Msgf`) to actually print the log
   - supported types (hope one day Go type-parameterized method works, revise them as several generic functions):
     - Bool, Str
-    - Int, Int8, Int16, Int32, Int64
+    - Int, Int8, Int16, Int32, Int64 (waiting for `Int[T ~Int|~Int8|...](k string, v T)`)
     - Uint, Uint8, Uint16, Uint32, Uint64
     - Float32, Float64
     - Err
@@ -57,8 +57,8 @@
   - cache time for print only seconds/milliseconds part
   - reduce/eliminate memory allocations
   - reuse buffer: pre-allocated buffer & `sync.Pool`
-  - replace `printf("%d", int)` with efficient integer to string conversions, by Matthew Wilson.
+  - replace `printf("%d", int)` with efficient integer to string conversions, by Matthew Wilson, and refer `strconv.Append...`
 
 # TODO
-  - fast float printing?
   - support `Map` to print all KV directly?
+  - Hex for negative values: `Printf("%#08x", -0xbad) == "-0x00bad"`

@@ -6,6 +6,7 @@ import (
 	"io"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -61,6 +62,27 @@ func TestEntryInt(t *testing.T) {
 	e.Msg("int")
 	checkStrContains(t, e, " int\n")
 }
+func TestEntryUint(t *testing.T) {
+	setup()
+
+	e := NewEntry()
+	e.Init(LEVEL_DEBUG, 0)
+
+	e = e.Uint("key1", 32).(*Entry)
+	checkStrContains(t, e, " key1=32")
+
+	e = e.Uint8("k8", 233).(*Entry)
+	checkStrContains(t, e, " k8=233")
+
+	e = e.Uint32("k32", 12345).(*Entry)
+	checkStrContains(t, e, " k32=12345")
+
+	e = e.Uint64("k64", 123456).(*Entry)
+	checkStrContains(t, e, " k64=123456")
+
+	e.Msg("int")
+	checkStrContains(t, e, " int\n")
+}
 func TestEntryIntPad0(t *testing.T) {
 	setup()
 
@@ -78,6 +100,28 @@ func TestEntryIntPad0(t *testing.T) {
 
 	e = e.IntPad0("neg", -32, 5).(*Entry)
 	checkStrContains(t, e, " k3=032 neg=-0032")
+
+	e.Msg("pad0")
+	checkTimeStr(t, e)
+	checkStrContains(t, e, " pad0\n")
+}
+func TestEntryUintPad0(t *testing.T) {
+	setup()
+
+	e := NewEntry()
+	e.Init(LEVEL_DEBUG, 0)
+
+	e = e.UintPad0("k1", 32, 1).(*Entry)
+	checkStrContains(t, e, " k1=32")
+
+	e = e.UintPad0("k2", 32, 2).(*Entry)
+	checkStrContains(t, e, " k1=32 k2=32")
+
+	e = e.UintPad0("k3", 32, 3).(*Entry)
+	checkStrContains(t, e, " k2=32 k3=032")
+
+	e = e.Uint64Pad0("k64", 123456, 8).(*Entry)
+	checkStrContains(t, e, " k64=00123456")
 
 	e.Msg("pad0")
 	checkTimeStr(t, e)
@@ -113,14 +157,97 @@ func BenchmarkInt_fmt(b *testing.B) {
 		_ = fmt.Sprintf("key=%d", i)
 	}
 }
+func BenchmarkInt_append(b *testing.B) {
+	b.ReportAllocs()
+	buf := make([]byte, 64)
+	for i := 0; i < b.N; i++ {
+		n := copy(buf, "key=")
+		buf = buf[:n]
+		buf = strconv.AppendInt(buf, int64(i), 10)
+		_ = buf
+	}
+}
 func BenchmarkInt(b *testing.B) {
 	setup()
 	b.ReportAllocs()
+	e := NewEntry()
 	for i := 0; i < b.N; i++ {
-		e := NewEntry()
+		e.pos = 0
 		e.Int("key", i)
 	}
 }
+func (e *Entry) writeUint64(v uint64) {
+	s := e.pos
+	for {
+		e.a[e.pos] = DIGITS[v%10]
+		e.pos += 1
+		v /= 10
+		if v == 0 {
+			break
+		}
+	}
+
+	reverseBytes(e.a[s:e.pos])
+}
+func (e *Entry) writeInt64(v int64) {
+	if v < 0 {
+		e.a[e.pos] = byte('-')
+		e.pos += 1
+		e.writeUint64(uint64(-v))
+	} else {
+		e.writeUint64(uint64(v))
+	}
+}
+func xInt64(e *Entry, k string, v int64) *Entry {
+	if e == nil {
+		return e
+	}
+
+	e.writeSep()
+	e.writeStr(k)
+	e.writeDelimar()
+	e.writeInt64(v)
+	return e
+}
+func xInt(e *Entry, k string, v int) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func xInt8(e *Entry, k string, v int8) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func xInt16(e *Entry, k string, v int16) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func xInt32(e *Entry, k string, v int32) *Entry {
+	return xInt64(e, k, int64(v))
+}
+func BenchmarkSpecificInt(b *testing.B) {
+	setup()
+	b.ReportAllocs()
+	e := NewEntry()
+	for i := 0; i < b.N; i++ {
+		e.pos = 0
+		xInt(e, "int", 42)
+		xInt8(e, "i8", 8)
+		xInt16(e, "i16", 16)
+		xInt32(e, "i32", 32)
+		xInt64(e, "i64", 64)
+	}
+}
+func BenchmarkAnyInt(b *testing.B) {
+	setup()
+	b.ReportAllocs()
+	e := NewEntry()
+	for i := 0; i < b.N; i++ {
+		e.pos = 0
+		anyInt(e, "int", 42)
+		anyInt(e, "i8", int8(8))
+		anyInt(e, "i16", int16(16))
+		anyInt(e, "i32", int32(32))
+		anyInt(e, "i64", int64(64))
+	}
+}
+
 func BenchmarkTimeAndLevel_fmt(b *testing.B) {
 	setup()
 	b.ReportAllocs()
@@ -208,78 +335,6 @@ func BenchmarkLogFields(b *testing.B) {
 			Int("int", 123).
 			Float32("float", -3.141592653589793).
 			Msg(fakeMessage)
-	}
-}
-
-func (e *Entry) writeUint64(v uint64) {
-	s := e.pos
-	for {
-		e.a[e.pos] = DIGITS[v%10]
-		e.pos += 1
-		v /= 10
-		if v == 0 {
-			break
-		}
-	}
-
-	reverseBytes(e.a[s:e.pos])
-}
-func (e *Entry) writeInt64(v int64) {
-	if v < 0 {
-		e.a[e.pos] = byte('-')
-		e.pos += 1
-		e.writeUint64(uint64(-v))
-	} else {
-		e.writeUint64(uint64(v))
-	}
-}
-func xInt64(e *Entry, k string, v int64) *Entry {
-	if e == nil {
-		return e
-	}
-
-	e.writeSep()
-	e.writeStr(k)
-	e.writeDelimar()
-	e.writeInt64(v)
-	return e
-}
-func xInt(e *Entry, k string, v int) *Entry {
-	return xInt64(e, k, int64(v))
-}
-func xInt8(e *Entry, k string, v int8) *Entry {
-	return xInt64(e, k, int64(v))
-}
-func xInt16(e *Entry, k string, v int16) *Entry {
-	return xInt64(e, k, int64(v))
-}
-func xInt32(e *Entry, k string, v int32) *Entry {
-	return xInt64(e, k, int64(v))
-}
-func BenchmarkSpecificInt(b *testing.B) {
-	setup()
-	b.ReportAllocs()
-	e := NewEntry()
-	for i := 0; i < b.N; i++ {
-		e.pos = 0
-		xInt(e, "int", 42)
-		xInt8(e, "i8", 8)
-		xInt16(e, "i16", 16)
-		xInt32(e, "i32", 32)
-		xInt64(e, "i64", 64)
-	}
-}
-func BenchmarkAnyInt(b *testing.B) {
-	setup()
-	b.ReportAllocs()
-	e := NewEntry()
-	for i := 0; i < b.N; i++ {
-		e.pos = 0
-		anyInt(e, "int", 42)
-		anyInt(e, "i8", int8(8))
-		anyInt(e, "i16", int16(16))
-		anyInt(e, "i32", int32(32))
-		anyInt(e, "i64", int64(64))
 	}
 }
 
