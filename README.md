@@ -32,7 +32,7 @@
   - zap is too complicated/free, and zerolog is json-intimated
   - zap配置太复杂/灵活，而zerolog简单但是以json为主
   - use fixed/hardcoded logic may be helpful for performance
-  - 使用固定/硬编码的逻辑，可能会性能更好
+  - 使用固定/硬编码的逻辑，可能会有更好的性能
 
 # I need feature XXX 我需要xxx功能
   - copy to codebase, e.g. under `pkg/flog` & modify by yourself :smirk:
@@ -50,7 +50,7 @@
     ```bash
 	$ my_app | tee logToFiles -d /var/logs/my_app/ --rotate-size 1m --files-keep 5
 	$ other_app | tee sendToKafka -c config.yml
-	```
+	  ```
 
 # How 如何实现
   - `copy(dst , src []byte)`

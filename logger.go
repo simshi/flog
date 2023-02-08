@@ -1,9 +1,5 @@
 package flog
 
-import (
-	"os"
-)
-
 type Logger struct {
 }
 
@@ -50,25 +46,6 @@ func (l *Logger) Fatal(skip int) IEntry {
 	e := &ExitEntry{
 		gEntryPool.Get().(*Entry),
 	}
-	// caution: return e.Init(...) gives Entry not ExitEntry
-	// return e.Init(LEVEL_FATAL, skip+1)
 	e.Init(LEVEL_FATAL, skip+1)
 	return e
-}
-
-// for Fatal log exit
-type ExitEntry struct {
-	*Entry
-}
-
-var _ IEntry = &ExitEntry{}
-
-func (e *ExitEntry) Msg(m string) {
-	e.Entry.Msg(m)
-	os.Exit(-1)
-}
-
-func (e *ExitEntry) Msgf(format string, v ...any) {
-	e.Entry.Msgf(format, v...)
-	os.Exit(-1)
 }

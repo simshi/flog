@@ -12,6 +12,7 @@ func ExampleDebug() {
 	const pi = 3.141592653589793238462643383279
 	Warn().Float32("pi", pi).Float64("pi64", pi).Msgf("%d,%.2f Hello %s!", 42, 42.0, "World")
 	Error().Bool("msg sent", true).Err(errors.New("timeout")).Msg("Hello World!")
+	// Fatal().IntPad0("msg", 64, 4).Err(errors.New("too many msg")).Msg("Hello World!")
 
 	// shorthand
 	Debugf("Hello %s!", "World")
@@ -21,9 +22,4 @@ func ExampleDebug() {
 	// Fatalf("Hello %s!", "World")
 
 	// Output:
-}
-
-func ExampleFatal() {
-	Fatal().Msg("Critical error, Byebye World!")
-	// ignore Output:
 }
