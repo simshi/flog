@@ -47,6 +47,24 @@ func TestEntryMsg(t *testing.T) {
 	checkStrContains(t, e, " abc\n")
 }
 
+func TestLongMsg(t *testing.T) {
+	setup()
+
+	e := NewEntry()
+	e.Init(LEVEL_WARN, 0)
+	pos := TIME_STRLEN + 1 + 14 + FILENAME_LEN + 2
+
+	s := ""
+	for i := 0; i < 1024; i++ {
+		s += "a/"
+	}
+
+	e.Msg(s)
+	checkPos(t, e, pos+1+1024*2+1)
+	checkTimeStr(t, e)
+	checkStrContains(t, e, "a/a/a")
+}
+
 func TestEntryInt(t *testing.T) {
 	setup()
 
@@ -129,9 +147,9 @@ func TestEntryUintPad0(t *testing.T) {
 }
 
 func checkPos(t *testing.T, e *Entry, pos int) {
-	if e.pos != pos {
-		_, _, line, _ := runtime.Caller(1)
-		t.Errorf("%d: expected pos=%d, got %d", line, pos, e.pos)
+	if len(e.b) != pos {
+		file, line := getFileLine(1)
+		t.Errorf("%s:%d: expected pos=%d, got %d", file, line, pos, len(e.b))
 	}
 }
 func checkTimeStr(t *testing.T, e *Entry) {
@@ -145,9 +163,9 @@ func checkTimeStr(t *testing.T, e *Entry) {
 	}
 }
 func checkStrContains(t *testing.T, e *Entry, dst string) {
-	if !strings.Contains(string(e.a[:]), dst) {
+	if !strings.Contains(string(e.b[:]), dst) {
 		_, _, line, _ := runtime.Caller(1)
-		t.Errorf("%d: expected string contains '%s', but got '%s'", line, dst, string(e.a[:]))
+		t.Errorf("%d: expected string contains '%s', but got '%s'", line, dst, string(e.b[:]))
 	}
 }
 
@@ -172,27 +190,24 @@ func BenchmarkInt(b *testing.B) {
 	b.ReportAllocs()
 	e := NewEntry()
 	for i := 0; i < b.N; i++ {
-		e.pos = 0
 		e.Int("key", i)
 	}
 }
 func (e *Entry) writeUint64(v uint64) {
-	s := e.pos
+	s := len(e.b)
 	for {
-		e.a[e.pos] = DIGITS[v%10]
-		e.pos += 1
+		e.a[len(e.b)] = DIGITS[v%10]
 		v /= 10
 		if v == 0 {
 			break
 		}
 	}
 
-	reverseBytes(e.a[s:e.pos])
+	reverseBytes(e.a[s:len(e.b)])
 }
 func (e *Entry) writeInt64(v int64) {
 	if v < 0 {
-		e.a[e.pos] = byte('-')
-		e.pos += 1
+		e.a[len(e.b)] = byte('-')
 		e.writeUint64(uint64(-v))
 	} else {
 		e.writeUint64(uint64(v))
@@ -226,7 +241,7 @@ func BenchmarkSpecificInt(b *testing.B) {
 	b.ReportAllocs()
 	e := NewEntry()
 	for i := 0; i < b.N; i++ {
-		e.pos = 0
+		e.b = e.a[:0]
 		xInt(e, "int", 42)
 		xInt8(e, "i8", 8)
 		xInt16(e, "i16", 16)
@@ -239,7 +254,7 @@ func BenchmarkAnyInt(b *testing.B) {
 	b.ReportAllocs()
 	e := NewEntry()
 	for i := 0; i < b.N; i++ {
-		e.pos = 0
+		e.b = e.a[:0]
 		anyInt(e, "int", 42)
 		anyInt(e, "i8", int8(8))
 		anyInt(e, "i16", int16(16))
@@ -267,7 +282,7 @@ func BenchmarkTimeAndLevel_onebyone(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, file, line, _ := runtime.Caller(1)
 		t := time.Now()
-		e.pos = 0
+		e.b = e.a[:0]
 		writeAnyInt(e, t.Year())
 		e.writeByte(byte('-'))
 		writeAnyIntPad0(e, t.Month(), 2)
@@ -281,8 +296,7 @@ func BenchmarkTimeAndLevel_onebyone(b *testing.B) {
 		writeAnyIntPad0(e, t.Second(), 2)
 		e.writeByte(byte('.'))
 		writeAnyIntPad0(e, t.Nanosecond()/1000000, 3)
-		b := t.AppendFormat(e.a[e.pos:e.pos], "Z07:00")
-		e.pos += len(b)
+		e.b = t.AppendFormat(e.b, "Z07:00")
 
 		e.writeSep()
 		e.writeStr("\033[2;37mDBGs\033[0m")
@@ -374,4 +388,14 @@ func BenchmarkFileRegex(b *testing.B) {
 			_ = reFile.Find([]byte(f))
 		}
 	}
+}
+
+func getFileLine(skip int) (string, int) {
+	_, file, line, _ := runtime.Caller(skip + 1)
+	if index := strings.LastIndex(file, "/"); index != -1 {
+		if begin := strings.LastIndex(file[:index], "/"); begin != -1 {
+			file = file[begin+1:]
+		}
+	}
+	return file, line
 }

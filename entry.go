@@ -12,8 +12,9 @@ const FIXED_ENTRY_SIZE = 1024 - 16
 const TIME_LAYOUT = "2006-01-02T15:04:05.000Z07:00"
 
 type Entry struct {
-	a          [FIXED_ENTRY_SIZE]byte
-	pos        int
+	a [FIXED_ENTRY_SIZE]byte
+	b []byte
+
 	cachedTime time.Time
 }
 
@@ -22,7 +23,7 @@ func NewEntry() *Entry {
 }
 
 func (e *Entry) Init(l Level, skip int) IEntry {
-	e.pos = 0
+	e.b = e.a[:0]
 	e.writeTime(time.Now())
 	e.writeSep()
 	e.writeStr(levelConsoleMap[l])
@@ -34,17 +35,13 @@ func (e *Entry) Init(l Level, skip int) IEntry {
 // finishing move
 func (e *Entry) Msg(m string) {
 	e.writeSep()
-	e.pos += copy(e.a[e.pos:], m)
+	e.b = append(e.b, m...)
 	e.writeByte(byte('\n'))
-	gWriter.Write(e.a[:e.pos])
+	gWriter.Write(e.b)
 	gEntryPool.Put(e)
 }
 func (e *Entry) Msgf(format string, v ...any) {
-	e.writeSep()
-	e.pos += copy(e.a[e.pos:], fmt.Sprintf(format, v...))
-	e.writeByte(byte('\n'))
-	gWriter.Write(e.a[:e.pos])
-	gEntryPool.Put(e)
+	e.Msg(fmt.Sprintf(format, v...))
 }
 
 // chainable methods
@@ -61,14 +58,14 @@ func anyInt[T IntSet](e *Entry, k string, v T) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
-	writeAnyInt(e, v)
+	e.b = strconv.AppendInt(e.b, int64(v), 10)
 	return e
 }
 func anyUint[T UintSet](e *Entry, k string, v T) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
-	writeAnyUint(e, v)
+	e.b = strconv.AppendUint(e.b, uint64(v), 10)
 	return e
 }
 
@@ -83,7 +80,7 @@ func anyUintPad0[T UintSet](e *Entry, k string, v T, pad int) IEntry {
 	e.writeSep()
 	e.writeStr(k)
 	e.writeDelimar()
-	writeAnyUintPad0(e, v, pad)
+	e.b = appendAnyUintPad0(e.b, v, pad)
 	return e
 }
 
@@ -211,52 +208,51 @@ func (e *Entry) Any(k string, v any) IEntry {
 
 // private helper functions
 func (e *Entry) writeByte(b byte) {
-	e.a[e.pos] = b
-	e.pos += 1
+	e.b = append(e.b, b)
 }
 func (e *Entry) writeTime(t time.Time) {
 	if t.Unix() == e.cachedTime.Unix() {
-		e.pos += 20
-		writeAnyUintPad0(e, uint(t.Nanosecond()/1000000), 3)
-		if e.a[e.pos] != byte('Z') {
-			e.pos += 6 // +08:00
+		b := appendAnyUintPad0(e.a[:20], uint(t.Nanosecond()/1000000), 3)
+		if e.a[len(b)] == 'Z' {
+			e.b = e.a[:len(b)+1]
 		} else {
-			e.pos += 1 // 'Z'
+			e.b = e.a[:len(b)+6]
 		}
 	} else {
+		e.b = t.AppendFormat(e.b, TIME_LAYOUT)
 		// e.pos += copy(e.a[:], t.Format(TIME_LAYOUT))
+
 		// b := t.AppendFormat(e.a[e.pos:e.pos], TIME_LAYOUT)
 		// e.pos += len(b)
-		writeAnyInt(e, t.Year())
-		e.writeByte(byte('-'))
-		writeAnyIntPad0(e, t.Month(), 2)
-		e.writeByte(byte('-'))
-		writeAnyIntPad0(e, t.Day(), 2)
-		e.writeByte(byte('T'))
-		writeAnyIntPad0(e, t.Hour(), 2)
-		e.writeByte(byte(':'))
-		writeAnyIntPad0(e, t.Minute(), 2)
-		e.writeByte(byte(':'))
-		writeAnyIntPad0(e, t.Second(), 2)
-		e.writeByte(byte('.'))
-		writeAnyIntPad0(e, t.Nanosecond()/1000000, 3)
-		b := t.AppendFormat(e.a[e.pos:e.pos], "Z07:00")
-		e.pos += len(b)
+
+		// writeAnyInt(e, t.Year())
+		// e.writeByte(byte('-'))
+		// writeAnyIntPad0(e, t.Month(), 2)
+		// e.writeByte(byte('-'))
+		// writeAnyIntPad0(e, t.Day(), 2)
+		// e.writeByte(byte('T'))
+		// writeAnyIntPad0(e, t.Hour(), 2)
+		// e.writeByte(byte(':'))
+		// writeAnyIntPad0(e, t.Minute(), 2)
+		// e.writeByte(byte(':'))
+		// writeAnyIntPad0(e, t.Second(), 2)
+		// e.writeByte(byte('.'))
+		// writeAnyIntPad0(e, t.Nanosecond()/1000000, 3)
+		// b := t.AppendFormat(e.a[e.pos:e.pos], "Z07:00")
+		// e.pos += len(b)
 
 		e.cachedTime = t
 	}
 }
 func (e *Entry) writeSep() {
-	e.a[e.pos] = byte(' ')
-	e.pos += 1
+	e.b = append(e.b, ' ')
 }
 func (e *Entry) writeDelimar() {
-	e.a[e.pos] = byte('=')
-	e.pos += 1
+	e.b = append(e.b, '=')
 }
 
 func (e *Entry) writeStr(s string) {
-	e.pos += copy(e.a[e.pos:], s)
+	e.b = append(e.b, s...)
 }
 
 // int to string conversion
@@ -271,88 +267,82 @@ const DIGITS2 = "00010203040506070809" +
 	"80818283848586878889" +
 	"90919293949596979899"
 
-// Efficient Integer to String Conversions, by Matthew Wilson.
-func writeAnyUint[T UintSet](e *Entry, v T) {
-	s := e.pos
+	// Efficient Integer to String Conversions, by Matthew Wilson.
+func appendUint(b []byte, v uint64) []byte {
+	// 实现：反向写入数值，最后翻转
+	s := len(b)
 	for v >= 100 {
 		i := v % 100 * 2
 		v = v / 100
-		e.a[e.pos+0] = DIGITS2[i+1]
-		e.a[e.pos+1] = DIGITS2[i+0]
-		e.pos += 2
+		b = append(b, DIGITS2[i+1], DIGITS2[i+0])
 	}
-	// remaining u < 100
+	// remaining v<100
 	i := v * 2
-	e.a[e.pos] = DIGITS2[i+1]
-	e.pos += 1
+	b = append(b, DIGITS2[i+1])
 	if v >= 10 {
-		e.a[e.pos] = DIGITS2[i+0]
-		e.pos += 1
+		b = append(b, DIGITS2[i+0])
 	}
 
-	reverseBytes(e.a[s:e.pos])
+	reverseBytes(b[s:])
+	return b
 }
+
 func writeAnyInt[T IntSet](e *Entry, v T) {
 	u := uint64(v)
 	if v < 0 {
-		e.a[e.pos] = byte('-')
-		e.pos += 1
+		e.b = append(e.b, '-')
 		u = -u // abs value
 	}
 
-	writeAnyUint(e, u)
+	e.b = appendUint(e.b, u)
 }
 
-func writeAnyUintPad0[T UintSet](e *Entry, v T, pad int) {
-	s := e.pos
+func appendAnyUintPad0[T UintSet](b []byte, v T, pad int) []byte {
+	// 实现：反向写入数值，最后翻转
+	s := len(b)
 	for v >= 100 {
 		i := v % 100 * 2
 		v = v / 100
-		e.a[e.pos+0] = DIGITS2[i+1]
-		e.a[e.pos+1] = DIGITS2[i+0]
-		e.pos += 2
+		b = append(b, DIGITS2[i+1], DIGITS2[i+0])
 	}
-	// remaining u < 100
+	// remaining v<100
 	i := v * 2
-	e.a[e.pos] = DIGITS2[i+1]
-	e.pos += 1
+	b = append(b, DIGITS2[i+1])
 	if v >= 10 {
-		e.a[e.pos] = DIGITS2[i+0]
-		e.pos += 1
+		b = append(b, DIGITS2[i+0])
 	}
 
-	for pad -= (e.pos - s); pad > 0; pad -= 1 {
-		e.a[e.pos] = byte('0')
-		e.pos += 1
+	for pad -= (len(b) - s); pad > 0; pad-- {
+		b = append(b, '0')
 	}
 
-	reverseBytes(e.a[s:e.pos])
+	reverseBytes(b[s:])
+	return b
 }
 func writeAnyIntPad0[T IntSet](e *Entry, v T, pad int) {
 	u := uint64(v)
 	if v < 0 {
-		e.a[e.pos] = byte('-')
-		e.pos += 1
+		e.b = append(e.b, '-')
 		pad -= 1
 		u = -u // abs value
 	}
-	writeAnyUintPad0(e, u, pad)
+
+	e.b = appendAnyUintPad0(e.b, u, pad)
 }
 
 const DIGITS = "0123456789ABCDEF"
 
 func (e *Entry) writeHex64(v uint64) {
-	s := e.pos
+	s := len(e.b)
 	for {
-		e.a[e.pos] = DIGITS[v%16]
-		e.pos += 1
+		e.b = append(e.b, DIGITS[v%16])
 		v /= 16
 		if v == 0 {
 			break
 		}
 	}
 
-	reverseBytes(e.a[s:e.pos])
+	reverseBytes(e.b[s:])
 }
 func reverseBytes(b []byte) {
 	j := len(b) - 1
@@ -362,21 +352,20 @@ func reverseBytes(b []byte) {
 }
 
 func (e *Entry) writeFloat64(v float64, bits int) {
-	b := strconv.AppendFloat(e.a[e.pos:e.pos], v, 'f', -1, bits)
-	e.pos += len(b)
+	e.b = strconv.AppendFloat(e.b, v, 'f', -1, bits)
 }
 
 func (e *Entry) writeCaller(skip int) {
 	_, file, line, _ := runtime.Caller(skip + 1)
 	if index := strings.LastIndex(file, "/"); index != -1 {
 		if begin := strings.LastIndex(file[:index], "/"); begin != -1 {
-			e.pos += copy(e.a[e.pos:], file[begin+1:])
+			e.b = append(e.b, file[begin+1:]...)
 		} else {
-			e.pos += copy(e.a[e.pos:], file)
+			e.b = append(e.b, file...)
 		}
 	} else {
-		e.pos += copy(e.a[e.pos:], file)
+		e.b = append(e.b, file...)
 	}
 	e.writeByte(byte(':'))
-	writeAnyUint(e, uint(line))
+	e.b = appendUint(e.b, uint64(line))
 }

@@ -13,7 +13,7 @@ var (
 
 var gEntryPool = sync.Pool{
 	New: func() interface{} {
-		return new(Entry)
+		return NewEntry()
 	},
 }
 
